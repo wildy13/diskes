@@ -1,0 +1,3 @@
+<template>
+    <RujukanProvinsi />
+</template>

@@ -1,0 +1,176 @@
+<script setup>
+import { useRumahSakitBatamStore } from '../../../stores/rumahSakit/batam.js';
+
+const store = useRumahSakitBatamStore();
+
+const search = ref('');
+const showCreate = ref(false);
+const showEdit = ref(false);
+const showRemove = ref(false);
+const selected = ref([]);
+const itemData = ref({});
+const page = ref(1);
+const pageCount = ref(10);
+
+const columns = [{
+    key: 'index',
+    label: '#',
+    class: 'text-center',
+},
+{
+    key: 'date',
+    label: 'Date',
+},
+{
+    key: 'nik',
+    label: 'NIK',
+},
+{
+    key: 'name',
+    label: 'Name',
+},
+{
+    key: 'address',
+    label: 'Alamat',
+},
+{
+    key: 'rt',
+    label: 'RT',
+},
+{
+    key: 'rw',
+    label: 'RW',
+},
+{
+    key: 'kelurahan',
+    label: 'Kelurahan',
+},
+{
+    key: 'kecamatan',
+    label: 'Kecamatan',
+},
+{
+    key: 'diagnosa',
+    label: 'Diagnosa',
+},
+{
+    key: 'rsTujuan',
+    label: 'Rumah Sakit Tujuan',
+},
+{
+    key: 'actions',
+    label: 'Actions',
+}
+];
+
+const data = computed(() => store.items.map((item) => {
+    const newDate = item.date
+    const dateObject = new Date(newDate);
+    const dateString = new Date(newDate).toISOString();
+    const options = { weekday: 'short', month: 'short', day: 'numeric' };
+    const formattedDate = dateObject.toLocaleDateString('en-US', options);
+
+    const isoDateParts = dateString.split('T');
+    const isoDate = isoDateParts[0];
+    return {
+        ...item,
+        formattedDate: formattedDate,
+        date: isoDate,
+    }
+}))
+
+const items = computed(() => useFilter(data.value, search.value, ['name']) || []);
+const rows = computed(() => items.value.slice((page.value - 1) * pageCount.value, (page.value) * pageCount.value));
+const pageFrom = computed(() => (page.value - 1) * pageCount.value + 1);
+const pageTo = computed(() => Math.min(page.value * pageCount.value, items.value.length));
+
+const {
+    pending,
+    error,
+    execute,
+} = useLazyAsyncData(() => store.getAll(), {
+    immediate: false,
+});
+
+const editDialog = (item) => {
+    showEdit.value = true;
+    itemData.value = item;
+};
+
+onMounted(async () => {
+    await execute();
+});
+
+</script>
+
+<template>
+    <div class="px-12 h-auto w-full py-8">
+        <div class="flex flex-col space-y-[4rem] w-full">
+            <div class="flex justify-between items-center w-full">
+                <div class="text-2xl">
+                    Rumah Sakit Batam
+                </div>
+
+                <div class="ml-auto flex space-x-[2rem]">
+                    <div>
+                        <UInput v-model="search" placeholder="Search..." icon="i-heroicons-magnifying-glass-20-solid"
+                            :ui="{ icon: { trailing: { pointer: '' } } }">
+                            <template #trailing>
+                                <UButton v-show="search !== ''" color="gray" variant="link"
+                                    icon="i-heroicons-x-mark-20-solid" :padded="false" @click="search = ''" />
+                            </template>
+                        </UInput>
+                    </div>
+                    <div class="flex space-x-[0.8rem]">
+                        <div>
+                            <UTooltip text="Create">
+                                <UButton icon="i-heroicons-plus" @click="showCreate = true" />
+                            </UTooltip>
+                        </div>
+                        <div>
+                            <UTooltip text="Remove">
+                                <UButton icon="i-solar-trash-bin-trash-linear" color="red" :disabled="!selected.length"
+                                    @click="showRemove = true" />
+                            </UTooltip>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <ErrorHandler v-if="error" :error="error?.message" />
+
+            <UTable v-model="selected" :columns="columns" :rows="rows" :loading="pending">
+                <template #index-data="{ index }">
+                    <div class="text-center">
+                        {{ index + 1 }}
+                    </div>
+                </template>
+                <template #actions-data="{ row }">
+                    <div class="flex space-x-[1rem]">
+                        <UTooltip text="Edit">
+                            <UButton icon="i-solar-pen-2-linear" size="xs" variant="ghost" color="gray" :padded="false"
+                                @click="editDialog(row)" />
+                        </UTooltip>
+                    </div>
+                </template>
+            </UTable>
+            <div v-if="rows.length" class="
+              flex
+              items-center
+              justify-end
+              py-4
+              gap-8
+            ">
+                <div class="text-primary-600">
+                    Showing {{ pageFrom }} to {{ pageTo }} of {{ items.length }} results
+                </div>
+                <USelectMenu v-model="pageCount" :options="[10, 20, 30, 40, 50]" class="w-20" />
+                <UPagination v-model="page" :page-count="pageCount" :total="items.length" />
+            </div>
+        </div>
+
+        <RumahsakitBatamCreate :show="showCreate" @close="showCreate = false" />
+        <RumahsakitBatamEdit :show="showEdit" :data="itemData" @close="showEdit = false" />
+        <RumahsakitBatamRemove :show="showRemove" :data="selected" @close="showRemove = false" />
+    </div>
+</template>
