@@ -62,13 +62,12 @@ const columns = [{
     label: 'Actions',
 }
 ];
-
 const data = computed(() => store.items.map((item) => {
     const newDate = item.date
     const dateObject = new Date(newDate);
     const dateString = new Date(newDate).toISOString();
-    const options = { weekday: 'short', month: 'short', day: 'numeric' };
-    const formattedDate = dateObject.toLocaleDateString('en-US', options);
+    const options = { weekday: 'long', month: 'long',  day: 'numeric', year: 'numeric' };
+    const formattedDate = dateObject.toLocaleDateString('id-ID', options);
 
     const isoDateParts = dateString.split('T');
     const isoDate = isoDateParts[0];
@@ -79,7 +78,7 @@ const data = computed(() => store.items.map((item) => {
     }
 }))
 
-const items = computed(() => useFilter(data.value, search.value, ['name']) || []);
+const items = computed(() => useFilter(data.value, search.value, ['name','nik','kelurahan','kecamatan','formattedDate']) || []);
 const rows = computed(() => items.value.slice((page.value - 1) * pageCount.value, (page.value) * pageCount.value));
 const pageFrom = computed(() => (page.value - 1) * pageCount.value + 1);
 const pageTo = computed(() => Math.min(page.value * pageCount.value, items.value.length));
